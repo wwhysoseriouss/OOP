@@ -12,7 +12,7 @@ def time_method(func):
         result = func(*args, **kwargs)
         end_time = time.perf_counter()
         execution_time = end_time - start_time
-        print(f"[ЛОГ ЧАСУ] Метод '{func.__name__}' виконано за {execution_time:.4f} секунд.\n")
+        print(f"[Time log] Метод '{func.__name__}' виконано за {execution_time:.4f} секунд.\n")
         return result
     return wrapper
 

@@ -53,40 +53,53 @@ class LegalEntity(PersonalCabinet):
         print(f"[Юридична особа] {self.name} | Використано: {self.used_kwh} кВт·год (Норма: {self.norm_kwh}) | До сплати: {self.calculate_payment():.2f} грн")
 
 
-# Клас-контейнер
-class ConsumersContainer:
+# Клас-контейнер (Патерн Registry)
+class ConsumerRegistry:
     def __init__(self):
-        self.consumers_list = []
+        # Використовуємо словник для зберігання (ім'я -> об'єкт)
+        self._consumers = {}
 
-    def add_consumer(self, consumer: PersonalCabinet):
-        if isinstance(consumer, PersonalCabinet):
-            self.consumers_list.append(consumer)
-            print(f"Додано споживача: {consumer.name}")
-        else:
+    def register(self, consumer: PersonalCabinet):
+        """Реєстрація нового споживача у контейнері"""
+        if not isinstance(consumer, PersonalCabinet):
             print("Помилка: Об'єкт має наслідувати клас PersonalCabinet.")
+            return
 
-    def remove_consumer(self, name: str):
-        initial_length = len(self.consumers_list)
-        self.consumers_list = [c for c in self.consumers_list if c.name != name]
-        if len(self.consumers_list) < initial_length:
+        if consumer.name in self._consumers:
+            print(f"Помилка: Споживач з іменем '{consumer.name}' вже зареєстрований.")
+        else:
+            self._consumers[consumer.name] = consumer
+            print(f"Зареєстровано споживача: {consumer.name}")
+
+    def unregister(self, name: str):
+        """Видалення (зняття з реєстрації) споживача"""
+        if name in self._consumers:
+            del self._consumers[name]
             print(f"Видалено споживача: {name}")
         else:
-            print(f"Споживача {name} не знайдено.")
+            print(f"Споживача '{name}' не знайдено.")
 
-    def replace_consumer(self, old_name: str, new_consumer: PersonalCabinet):
-        for index, consumer in enumerate(self.consumers_list):
-            if consumer.name == old_name:
-                self.consumers_list[index] = new_consumer
-                print(f"Споживача '{old_name}' замінено на '{new_consumer.name}'.")
-                return True
-        print(f"Споживача '{old_name}' не знайдено для заміни.")
-        return False
+    def replace(self, old_name: str, new_consumer: PersonalCabinet):
+        """Заміна існуючого споживача на нового"""
+        if old_name in self._consumers:
+            # Видаляємо старого запис
+            del self._consumers[old_name]
+            # Реєструємо нового (перевірки відбудуться всередині методу register)
+            print(f"Споживача '{old_name}' замінюємо на '{new_consumer.name}'...")
+            self.register(new_consumer)
+        else:
+            print(f"Споживача '{old_name}' не знайдено для заміни.")
+
+    def get_consumer(self, name: str) -> PersonalCabinet:
+        """Отримання об'єкта споживача за іменем"""
+        return self._consumers.get(name)
 
     def process_all(self):
         """Демонстрація однотипної обробки екземплярів класів-потомків"""
         print("\n--- Обробка всіх споживачів (Демонстрація поліморфізму) ---")
-        for consumer in self.consumers_list:
-            # Цикл перебирає екземпляри, і правильний метод викликається автоматично
+        if not self._consumers:
+            print("Реєстр порожній.")
+        for consumer in self._consumers.values():
             consumer.display_info()
         print("----------------------------------------------------\n")
 
@@ -104,21 +117,24 @@ if __name__ == "__main__":
     legal1 = LegalEntity("ТОВ 'ТехноБуд'", 1200, STANDARD_RATE, norm_kwh=1000, over_norm_rate=COMMERCIAL_OVERAGE_RATE)
     legal2 = LegalEntity("Пекарня 'Хліб'", 400, STANDARD_RATE, norm_kwh=500, over_norm_rate=COMMERCIAL_OVERAGE_RATE)
 
-    # 2. Ініціалізація контейнера та додавання споживачів
-    container = ConsumersContainer()
-    container.add_consumer(indiv1)
-    container.add_consumer(legal1)
-    container.add_consumer(legal2)
+    # 2. Ініціалізація реєстру-контейнера та додавання споживачів
+    registry = ConsumerRegistry()
+    registry.register(indiv1)
+    registry.register(legal1)
+    registry.register(legal2)
+    
+    # Спроба зареєструвати того ж самого користувача (перевірка захисту)
+    registry.register(indiv1)
     
     # 3. Демонстрація однотипної обробки
-    container.process_all()
+    registry.process_all()
 
     # 4. Демонстрація заміни
     new_indiv = Individual("Тарас Шевченко", 210, STANDARD_RATE)
-    container.replace_consumer("ТОВ 'ТехноБуд'", new_indiv)
+    registry.replace("ТОВ 'ТехноБуд'", new_indiv)
     
     # 5. Демонстрація видалення
-    container.remove_consumer("Пекарня 'Хліб'")
+    registry.unregister("Пекарня 'Хліб'")
     
     # 6. Обробка фінального стану
-    container.process_all()
+    registry.process_all()
